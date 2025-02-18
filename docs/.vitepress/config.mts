@@ -2,6 +2,8 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+  base: '/blogs/',
+
   title: "GYang's Blogs",
   description: "顺其自然的学习小屋",
 
