@@ -25,23 +25,27 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: '学习笔记', 
         items: [
-          { text: 'Kafka', link: '/notes/kafka/01-intro' },
-          { text: 'Flink', link: '/notes/flink/01-intro' },
+          { text: 'Fluss', link: '/notes/fluss/fluss-category' },
+          { text: 'Kafka', link: '/notes/kafka/kafka-category' },
         ]
       },
       // { text: 'Examples', link: '/markdown-examples' }
     ],
 
     sidebar: {
+      '/notes/fluss/': [
+        { 
+            text: 'Fluss学习笔记', 
+            items: [
+              { text: '01-搭建Fluss本地开发环境', link: '/notes/fluss/01-development-env-setup' },
+            ]
+        }
+      ],
       '/notes/kafka/': [
         { 
             text: 'Kafka学习笔记', 
             items: [
-            { text: '01-kafka简介', link: '/notes/kafka/01-intro' },
-            // { text: '02-Install', link: '/notes/kafka/02-install' },
-            // { text: '03-Producer', link: '/notes/kafka/03-producer' },
-            // { text: '04-Consumer', link: '/notes/kafka/04-consumer' },
-            // { text: '05-Advanced', link: '/notes/kafka/05-advanced' },
+              { text: '01-kafka简介', link: '/notes/kafka/01-intro' },
             ]
         }
       ],

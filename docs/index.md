@@ -11,11 +11,11 @@ hero:
     alt: Streaming
   actions:
     - theme: brand
-      text: Flink
-      link: /notes/flink/flink-menu
+      text: Fluss
+      link: /notes/fluss/flink-category
     - theme: alt
       text: Kafka
-      link: /notes/kafka/kafka-menu
+      link: /notes/kafka/kafka-category
 
 features:
   - title: Fluss

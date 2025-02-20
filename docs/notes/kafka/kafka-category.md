@@ -1,9 +1,9 @@
 ---
 title: Kafka资料合集
-tags: flink
+tags: kafka
 ---
 
-# Flink文章合集
+# Kafka文章合集
 
 * [Kakfa概述](./01-intro.md)
 * Client客户端
