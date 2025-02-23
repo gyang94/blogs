@@ -18,6 +18,8 @@ export default defineConfig({
     ],
   ],
 
+  lastUpdated: true,
+
   themeConfig: {
     logo: '/data-lake.png',
     // https://vitepress.dev/reference/default-theme-config
@@ -38,6 +40,8 @@ export default defineConfig({
             text: 'Fluss学习笔记', 
             items: [
               { text: '01-搭建Fluss本地开发环境', link: '/notes/fluss/01-development-env-setup' },
+              { text: '02-Fluss Catalog', link: '/notes/fluss/02-fluss-catalog' },
+
             ]
         }
       ],
@@ -62,6 +66,15 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/gyang94' }
-    ]
+    ],
+
+    lastUpdated: {
+      text: '最后更新',
+      formatOptions: {
+        dateStyle: 'full',
+        timeStyle: 'medium',
+        hourCycle: 'h24',
+      }
+    }
   }
 })

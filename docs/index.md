@@ -21,7 +21,13 @@ features:
   - title: Fluss
     icon:
       src: /F.svg
-    details: Fluss is a streaming storage built for real-time analytics which can serve as the real-time data layer for Lakehouse architectures.
+    details:
+      Fluss 是一种为实时分析而构建的流式存储，可以用作 Lakehouse 架构的实时数据层。
+      <br />
+      <br />
+      持续学习，持续更新中..
+      
+    link: 
   - title: Flink
     icon:
       src: /flink.svg
