@@ -14,6 +14,9 @@ hero:
       text: Fluss
       link: /notes/fluss/flink-category
     - theme: alt
+      text: Flink
+      link: /notes/flink/flink-category
+    - theme: alt
       text: Kafka
       link: /notes/kafka/kafka-category
 
@@ -27,15 +30,14 @@ features:
       <br />
       持续学习，持续更新中..
       
-    link: 
   - title: Flink
     icon:
       src: /flink.svg
-    details: Apache Flink is a framework and distributed processing engine for stateful computations over unbounded and bounded data streams. Flink has been designed to run in all common cluster environments, perform computations at in-memory speed and at any scale.
+    details: Apache Flink 是一个框架和分布式处理引擎，用于对无界和有界数据流进行有状态计算。Flink 被设计为在所有常见的集群环境中运行，以内存速度和任何规模执行计算。
   - title: Kafka
     icon:
       src: /kafka.svg
-    details: Apache Kafka is an open-source distributed event streaming platform used by thousands of companies for high-performance data pipelines, streaming analytics, data integration, and mission-critical applications.
+    details: Apache Kafka 是一个开源分布式事件流平台，被数千家公司用于高性能数据管道、流分析、数据集成和任务关键型应用程序。
     
 ---
 

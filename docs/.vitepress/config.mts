@@ -28,6 +28,7 @@ export default defineConfig({
       { text: '学习笔记', 
         items: [
           { text: 'Fluss', link: '/notes/fluss/fluss-category' },
+          { text: 'Flink', link: '/notes/flink/flink-category' },
           { text: 'Kafka', link: '/notes/kafka/kafka-category' },
         ]
       },
@@ -57,8 +58,7 @@ export default defineConfig({
         { 
             text: 'Flink学习笔记', 
             items: [
-              { text: '01-Flink简介', link: '/notes/flink/01-intro' },
-              // { text: '02-Install', link: '/notes/flink/02-install' }
+              { text: 'Flink源码 - 从Kafka Connector看Source接口重构', link: '/notes/flink/flink-connector-kafka' }
             ]
         }
       ]
