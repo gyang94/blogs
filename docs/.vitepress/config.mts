@@ -39,6 +39,8 @@ export default defineConfig({
       '/notes/fluss/': [
         { 
             text: 'Fluss学习笔记', 
+            link: '/notes/fluss/fluss-category',
+            collapsed: true,
             items: [
               { text: '01-搭建Fluss本地开发环境', link: '/notes/fluss/01-development-env-setup' },
               { text: '02-Fluss Catalog', link: '/notes/fluss/02-fluss-catalog' },
@@ -49,14 +51,19 @@ export default defineConfig({
       '/notes/kafka/': [
         { 
             text: 'Kafka学习笔记', 
+            link: '/notes/kafka/kafka-category',
+            collapsed: true,
             items: [
               { text: '01-kafka简介', link: '/notes/kafka/01-intro' },
+              { text: '02-kafka命令合集', link: '/notes/kafka/02-kafka-cli' },
             ]
         }
       ],
       '/notes/flink/': [
         { 
             text: 'Flink学习笔记', 
+            link: '/notes/flink/flink-category',
+            collapsed: true,
             items: [
               { text: 'Flink源码 - 从Kafka Connector看Source接口重构', link: '/notes/flink/flink-connector-kafka' }
             ]

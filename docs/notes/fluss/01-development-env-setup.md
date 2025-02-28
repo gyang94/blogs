@@ -1,6 +1,7 @@
 ---
 title: 搭建Fluss本地开发环境
 tags: fluss
+outline: deep
 ---
 
 # **搭建Fluss本地开发环境**

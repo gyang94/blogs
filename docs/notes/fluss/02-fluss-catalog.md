@@ -1,6 +1,7 @@
 ---
 title: Fluss Catalog
 tags: fluss
+outline: deep
 ---
 
 # Fluss Catalog
