@@ -6,10 +6,11 @@ import VisitorPanel from "./components/VisitorPanel.vue";
 
 export default {
     ...DefaultTheme,
-    enhanceApp({ app, router }) {
-        app.component("VisitorPanel", VisitorPanel);
+    enhanceApp(ctx) {
+        DefaultTheme.enhanceApp(ctx);
+        ctx.app.component("VisitorPanel", VisitorPanel);
         if (inBrowser) {
-            router.onAfterRouteChanged = () => {
+            ctx.router.onAfterRouteChanged = () => {
                 busuanzi.fetch();
             };
         }

@@ -56,6 +56,18 @@ export default defineConfig({
             items: [
               { text: '01-kafka简介', link: '/notes/kafka/01-intro' },
               { text: '02-kafka命令合集', link: '/notes/kafka/02-kafka-cli' },
+              { text: 'Kafka源码系列', items: [
+                  {
+                    text: 'Producer生产者', collapsed: true, items: [
+                      { text: 'KafkaProducer源码 - 初始化', link: '/notes/kafka/source-code/producer/producer-init' },
+                    ]
+                  },
+                  {
+                    text: 'Consumer消费者', items: [
+                    ]
+                  }
+                ] 
+              },
             ]
         }
       ],

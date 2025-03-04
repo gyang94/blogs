@@ -4,10 +4,11 @@ tags: kafka
 outline: 'deep'
 ---
 
-# KafkaProducer源码 - 初始化 <Badge type="info" text="Kafka" />
+# KafkaProducer源码 - 初始化 
+
+### <Badge type="tip" text="Kafka" />
 
 > 此篇介绍原文来自 hsfxuebao 博客 [kafka源码系列](https://juejin.cn/post/7008882455868342285)。本文在原文的基础上有一些优化和修改。
-
 
 ## 1. Kafka Producer 使用
 
