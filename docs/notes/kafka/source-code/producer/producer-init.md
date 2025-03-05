@@ -6,9 +6,9 @@ outline: 'deep'
 
 # KafkaProducer源码 - 初始化 
 
-### <Badge type="tip" text="Kafka" />
+### <Badge type="tip" text="Kafka" /> <Badge type="tip" text="3.9.0" />
 
-> 此篇介绍原文来自 hsfxuebao 博客 [kafka源码系列](https://juejin.cn/post/7008882455868342285)。本文在原文的基础上有一些优化和修改。
+> 此篇介绍原文来自 hsfxuebao 博客 [kafka源码系列](https://juejin.cn/post/7008882455868342285)。原文使用的Kafka版本是0.10.2。本文将代码内容更新到了3.9.0，并且相应的内容也做了修改和补充。
 
 ## 1. Kafka Producer 使用
 
@@ -46,11 +46,14 @@ public class ProducerTest {
 ```java
 public class KafkaProducer<K, V> implements Producer<K, V> {
 
-    private static final Logger log = LoggerFactory.getLogger(KafkaProducer.class);
-    // 用于生产者客户端名称的生成，自增序列器
-    private static final AtomicInteger PRODUCER_CLIENT_ID_SEQUENCE = new AtomicInteger(1);
-    // JMX中显示的前缀
+    private final Logger log;
     private static final String JMX_PREFIX = "kafka.producer";
+    public static final String NETWORK_THREAD_PREFIX = "kafka-producer-network-thread";
+    public static final String PRODUCER_METRIC_GROUP_NAME = "producer-metrics";
+    
+    // 性能监控相关
+	final Metrics metrics;
+    private final KafkaProducerMetrics producerMetrics;
     // 生产者客户端的名称
     private String clientId;
     // 分区器
@@ -60,17 +63,15 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
     // 发送单个消息的缓冲区大小
     private final long totalMemorySize;
     // 集群元数据信息
-    private final Metadata metadata;
+    private final ProducerMetadata metadata;
     // 用于存放消息的缓冲
     private final RecordAccumulator accumulator;
     // 发送消息的Sender任务
     private final Sender sender;
-    // 性能监控相关
-    private final Metrics metrics;
     // 发送消息的线程，sender对象会在该线程中运行
     private final Thread ioThread;
     // 压缩算法
-    private final CompressionType compressionType;
+    private final Compression compression;
     // 错误记录器
     private final Sensor errors;
     // 用于时间相关操作
@@ -82,10 +83,15 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
     private final ProducerConfig producerConfig;
     // 等待更新Kafka集群元数据的最大时长
     private final long maxBlockTimeMs;
-    // 消息的超时时间，也就是从消息发送到收到ACK响应的最长时长
-    private final int requestTimeoutMs;
+    // 分区器是否使用record key来分区。如果为true，则不使用hash of key来分区。
+    private final boolean partitionerIgnoreKeys;
     // 拦截器集合
     private final ProducerInterceptors<K, V> interceptors;
+    private final ApiVersions apiVersions;
+    // 事务管理器
+    private final TransactionManager transactionManager;
+    // 客户端Telemetry报告, 用于报告客户端metrics
+    private final Optional<ClientTelemetryReporter> clientTelemetryReporter;
 }
 ```
 
@@ -94,68 +100,87 @@ public class KafkaProducer<K, V> implements Producer<K, V> {
 ### KafkaProducer 构造器
 
 ```java
-public KafkaProducer(Properties properties) {
-      this(new ProducerConfig(properties), null, null);
-}
-
-private KafkaProducer(ProducerConfig config, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+KafkaProducer(ProducerConfig config,
+              Serializer<K> keySerializer,
+              Serializer<V> valueSerializer,
+              ProducerMetadata metadata,
+              KafkaClient kafkaClient,
+              ProducerInterceptors<K, V> interceptors,
+              Time time) {
     try {
-        log.trace("Starting the Kafka producer");
-        // 从原始配置拷贝一份副本
-        Map<String, Object> userProvidedConfigs = config.originals();
         this.producerConfig = config;
-        this.time = Time.SYSTEM;
-        // 获取clientId
-        clientId = config.getString(ProducerConfig.CLIENT_ID_CONFIG);
-        if (clientId.length() <= 0)
-            // 如果clientId没指定，则使用"producer-序列化"的形式表示
-            clientId = "producer-" + PRODUCER_CLIENT_ID_SEQUENCE.getAndIncrement();
-        Map<String, String> metricTags = new LinkedHashMap<String, String>();
-        metricTags.put("client-id", clientId);
-        // metric一些东西，监控
+        this.time = time;
+				
+		// 事务transaction id
+        String transactionalId = config.getString(ProducerConfig.TRANSACTIONAL_ID_CONFIG);
+
+		// 获取clientId
+        this.clientId = config.getString(ProducerConfig.CLIENT_ID_CONFIG);
+
+		// 初始化Log
+        LogContext logContext;
+        if (transactionalId == null)
+            logContext = new LogContext(String.format("[Producer clientId=%s] ", clientId));
+        else
+            logContext = new LogContext(String.format("[Producer clientId=%s, transactionalId=%s] ", clientId, transactionalId));
+        log = logContext.logger(KafkaProducer.class);
+        log.trace("Starting the Kafka producer");
+
+		// Metrics相关初始化
+        Map<String, String> metricTags = Collections.singletonMap("client-id", clientId);
         MetricConfig metricConfig = new MetricConfig().samples(config.getInt(ProducerConfig.METRICS_NUM_SAMPLES_CONFIG))
                 .timeWindow(config.getLong(ProducerConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG), TimeUnit.MILLISECONDS)
+                .recordLevel(Sensor.RecordingLevel.forName(config.getString(ProducerConfig.METRICS_RECORDING_LEVEL_CONFIG)))
                 .tags(metricTags);
-        List<MetricsReporter> reporters = config.getConfiguredInstances(ProducerConfig.METRIC_REPORTER_CLASSES_CONFIG,
-                MetricsReporter.class);
-        reporters.add(new JmxReporter(JMX_PREFIX));
-        this.metrics = new Metrics(metricConfig, reporters, time);
-        // 获取配置的分区器
-        this.partitioner = config.getConfiguredInstance(ProducerConfig.PARTITIONER_CLASS_CONFIG, Partitioner.class);
-        // 重试时间 默认100ms
+        List<MetricsReporter> reporters = CommonClientConfigs.metricsReporters(clientId, config);
+        this.clientTelemetryReporter = CommonClientConfigs.telemetryReporter(clientId, config);
+        this.clientTelemetryReporter.ifPresent(reporters::add);
+        MetricsContext metricsContext = new KafkaMetricsContext(JMX_PREFIX,
+                config.originalsWithPrefix(CommonClientConfigs.METRICS_CONTEXT_PREFIX));
+        this.metrics = new Metrics(metricConfig, reporters, time, metricsContext);
+        this.producerMetrics = new KafkaProducerMetrics(metrics);
+        
+        // 分区器
+        this.partitioner = config.getConfiguredInstance(
+                ProducerConfig.PARTITIONER_CLASS_CONFIG,
+                Partitioner.class,
+                Collections.singletonMap(ProducerConfig.CLIENT_ID_CONFIG, clientId));
+        warnIfPartitionerDeprecated();
+        this.partitionerIgnoreKeys = config.getBoolean(ProducerConfig.PARTITIONER_IGNORE_KEYS_CONFIG);
+        // 重试时间
         long retryBackoffMs = config.getLong(ProducerConfig.RETRY_BACKOFF_MS_CONFIG);
+        // 重试最大时间
+        long retryBackoffMaxMs = config.getLong(ProducerConfig.RETRY_BACKOFF_MAX_MS_CONFIG);
         // 设置序列化器
         if (keySerializer == null) {
             this.keySerializer = config.getConfiguredInstance(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                    Serializer.class);
-            this.keySerializer.configure(config.originals(), true);
+                                                                                     Serializer.class);
+            this.keySerializer.configure(config.originals(Collections.singletonMap(ProducerConfig.CLIENT_ID_CONFIG, clientId)), true);
         } else {
             config.ignore(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG);
             this.keySerializer = keySerializer;
         }
         if (valueSerializer == null) {
             this.valueSerializer = config.getConfiguredInstance(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                    Serializer.class);
-            this.valueSerializer.configure(config.originals(), false);
+                                                                                       Serializer.class);
+            this.valueSerializer.configure(config.originals(Collections.singletonMap(ProducerConfig.CLIENT_ID_CONFIG, clientId)), false);
         } else {
             config.ignore(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG);
             this.valueSerializer = valueSerializer;
         }
 
-        // load interceptors and make sure they get clientId
-        userProvidedConfigs.put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
-        // 设置拦截器
-        List<ProducerInterceptor<K, V>> interceptorList = (List) (new ProducerConfig(userProvidedConfigs, false)).getConfiguredInstances(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
+		// 设置拦截器
+        List<ProducerInterceptor<K, V>> interceptorList = ClientUtils.configuredInterceptors(config,
+                ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,
                 ProducerInterceptor.class);
-        this.interceptors = interceptorList.isEmpty() ? null : new ProducerInterceptors<>(interceptorList);
-
-        ClusterResourceListeners clusterResourceListeners = configureClusterResourceListeners(keySerializer, valueSerializer, interceptorList, reporters);
-
-        /** 创建Metadata集群元数据对象，生产者从服务端拉取kafka元数据信息
-         *  需要发送网络请求，重试
-         *  metadata.max.age.ms 生产者每隔一段时间更新自己的元数据，默认5分钟
-          */
-        this.metadata = new Metadata(retryBackoffMs, config.getLong(ProducerConfig.METADATA_MAX_AGE_CONFIG), true, clusterResourceListeners);
+        if (interceptors != null)
+            this.interceptors = interceptors;
+        else
+            this.interceptors = new ProducerInterceptors<>(interceptorList);
+        ClusterResourceListeners clusterResourceListeners = ClientUtils.configureClusterResourceListeners(
+                interceptorList,
+                reporters,
+                Arrays.asList(this.keySerializer, this.valueSerializer));
         /**
          * MAX_REQUEST_SIZE_CONFIG 生产者往服务端发送一条消息最大的size
          * 默认1m 如果超过这个大小，消息就发送不出去
@@ -170,99 +195,76 @@ private KafkaProducer(ProducerConfig config, Serializer<K> keySerializer, Serial
          * 提高系统的吞吐率
          * 一次发送出去的消息越多，生产者需要消耗更多的cpu
          */
-        this.compressionType = CompressionType.forName(config.getString(ProducerConfig.COMPRESSION_TYPE_CONFIG));
-       
-         ....(省略部分代码)
-      
+        this.compression = configureCompression(config);
+
+        this.maxBlockTimeMs = config.getLong(ProducerConfig.MAX_BLOCK_MS_CONFIG);
+        int deliveryTimeoutMs = configureDeliveryTimeout(config, log);
+
+        this.apiVersions = new ApiVersions();
+        // 设置事务管理器
+        this.transactionManager = configureTransactionState(config, logContext);
+        // There is no need to do work required for adaptive partitioning, if we use a custom partitioner.
+        boolean enableAdaptivePartitioning = partitioner == null &&
+            config.getBoolean(ProducerConfig.PARTITIONER_ADPATIVE_PARTITIONING_ENABLE_CONFIG);
+        RecordAccumulator.PartitionerConfig partitionerConfig = new RecordAccumulator.PartitionerConfig(
+            enableAdaptivePartitioning,
+            config.getLong(ProducerConfig.PARTITIONER_AVAILABILITY_TIMEOUT_MS_CONFIG)
+        );
+        // As per Kafka producer configuration documentation batch.size may be set to 0 to explicitly disable
+        // batching which in practice actually means using a batch size of 1.
+        int batchSize = Math.max(1, config.getInt(ProducerConfig.BATCH_SIZE_CONFIG));
         /**
          * 创建RecordAccumulator，它是一个发送消息数据的记录缓冲器，用于批量发送消息数据
          * batch.size单位是字节，默认16k 用于指定达到多少字节批量发送一次
          */
-        this.accumulator = new RecordAccumulator(config.getInt(ProducerConfig.BATCH_SIZE_CONFIG),
-                this.totalMemorySize,
-                this.compressionType,
-                config.getLong(ProducerConfig.LINGER_MS_CONFIG),
+        this.accumulator = new RecordAccumulator(logContext,
+                batchSize,
+                compression,
+                lingerMs(config),
                 retryBackoffMs,
+                retryBackoffMaxMs,
+                deliveryTimeoutMs,
+                partitionerConfig,
                 metrics,
-                time);
-
-        List<InetSocketAddress> addresses = ClientUtils.parseAndValidateAddresses(config.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
-        /**
-         * 会将创建KafkaProducer时配置的broker列表传入
-         * 该update()方法同时会更新Metadata对象的一些属性，
-         * 并通知所有MetadataUpdate Listener监听器，自己要开始更新数据了
-         * 同时唤醒等待Metadata更新完成的线程
-         */
-        //TODO product初始化时， update方法初始化的时候并没有去服务端拉取元数据。
-        this.metadata.update(Cluster.bootstrap(addresses), time.milliseconds());
-        // 根据配置的协议，创建不同的ChannelBuilder
-        ChannelBuilder channelBuilder = ClientUtils.createChannelBuilder(config.values());
-        //TODO 初始化了一个重要的管理网路的组件。
-        /**
-         *connections.max.idle.ms: 默认值是9分钟，一个网络连接最多空闲多久，超过这个空闲时间，就关闭这个网络连接。
-         *
-         * max.in.flight.requests.per.connection：默认是5，producer -> broker 。
-         *  发送数据的时候，其实是有多个网络连接。每个网络连接可以忍受 producer端发送给broker消息 然后消息没有响应的个数。
-         *  因为kafka有重试机制，所以有可能会造成数据乱序，如果想要保证有序，这个值要把设置为1.
-         *
-         *  send.buffer.bytes：socket发送数据的缓冲区的大小，默认值是128K
-         *  receive.buffer.bytes：socket接受数据的缓冲区的大小，默认值是32K。
-         */
-        NetworkClient client = new NetworkClient(
-                new Selector(config.getLong(ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG), this.metrics, time, "producer", channelBuilder),
-                this.metadata,
-                clientId,
-                config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION),
-                config.getLong(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG),
-                config.getInt(ProducerConfig.SEND_BUFFER_CONFIG),
-                config.getInt(ProducerConfig.RECEIVE_BUFFER_CONFIG),
-                this.requestTimeoutMs,
+                PRODUCER_METRIC_GROUP_NAME,
                 time,
-                true);
-        // 创建sender线程
-        //retries:重试的次数
-        /***
-         * acks:
-         *   0:
-         *      producer发送数据到broker后，就完了，没有返回值，不管写成功还是写失败都不管了。
-         *   1：
-         *      producer发送数据到broker后，数据成功写入leader partition以后返回响应。
-         *      数据 -> broker（leader partition）
-         *   -1：
-         *       producer发送数据到broker后，数据要写入到leader partition里面，并且数据同步到所有的
-         *       follower partition里面以后，才返回响应。
-         *
-         *       这样我们才能保证不丢数据。
-         */
-        this.sender = new Sender(client,
-                this.metadata,
-                this.accumulator,
-                config.getInt(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION) == 1,
-                config.getInt(ProducerConfig.MAX_REQUEST_SIZE_CONFIG),
-                (short) parseAcks(config.getString(ProducerConfig.ACKS_CONFIG)),
-                config.getInt(ProducerConfig.RETRIES_CONFIG),
-                this.metrics,
-                Time.SYSTEM,
-                this.requestTimeoutMs);
-        String ioThreadName = "kafka-producer-network-thread" + (clientId.length() > 0 ? " | " + clientId : "");
+                apiVersions,
+                transactionManager,
+                new BufferPool(this.totalMemorySize, batchSize, metrics, time, PRODUCER_METRIC_GROUP_NAME));
+
+        List<InetSocketAddress> addresses = ClientUtils.parseAndValidateAddresses(config);
+        /** 创建Metadata集群元数据对象，生产者从服务端拉取kafka元数据信息
+         *  需要发送网络请求，重试
+         *  metadata.max.age.ms 生产者每隔一段时间更新自己的元数据，默认5分钟
+          */
+        if (metadata != null) {
+            this.metadata = metadata;
+        } else {
+            this.metadata = new ProducerMetadata(retryBackoffMs,
+                    retryBackoffMaxMs,
+                    config.getLong(ProducerConfig.METADATA_MAX_AGE_CONFIG),
+                    config.getLong(ProducerConfig.METADATA_MAX_IDLE_CONFIG),
+                    logContext,
+                    clusterResourceListeners,
+                    Time.SYSTEM);
+            this.metadata.bootstrap(addresses);
+        }
+        this.errors = this.metrics.sensor("errors");
+        // 创建sender
+        this.sender = newSender(logContext, kafkaClient, this.metadata);
         /**
          * 创建了一个线程，然后里面传进去了一个sender对象。
          * 把业务的代码和关于线程的代码给隔离开来。
-         * 关于线程的这种代码设计的方式，其实也值得大家积累的。
         */
+        String ioThreadName = NETWORK_THREAD_PREFIX + " | " + clientId;
         this.ioThread = new KafkaThread(ioThreadName, this.sender, true);
-        // 启动sender线程
         this.ioThread.start();
-
-        this.errors = this.metrics.sensor("errors");
-
         config.logUnused();
-        AppInfoParser.registerAppInfo(JMX_PREFIX, clientId);
+        AppInfoParser.registerAppInfo(JMX_PREFIX, clientId, metrics, time.milliseconds());
         log.debug("Kafka producer started");
     } catch (Throwable t) {
-        // call close methods if internal objects are already constructed
-        // this is to prevent resource leak. see KAFKA-2121
-        close(0, TimeUnit.MILLISECONDS, true);
+        // call close methods if internal objects are already constructed this is to prevent resource leak. see KAFKA-2121
+        close(Duration.ofMillis(0), true);
         // now propagate the exception
         throw new KafkaException("Failed to construct kafka producer", t);
     }
