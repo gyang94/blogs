@@ -1,5 +1,5 @@
 ---
-title: Kafka资料合集
+title: KafkaProducer源码 - 初始化
 tags: kafka
 outline: 'deep'
 ---
@@ -8,7 +8,7 @@ outline: 'deep'
 
 ### <Badge type="tip" text="Kafka" /> <Badge type="tip" text="3.9.0" />
 
-> 此篇介绍原文来自 hsfxuebao 博客 [kafka源码系列](https://juejin.cn/post/7008882455868342285)。原文使用的Kafka版本是0.10.2。本文将代码内容更新到了3.9.0，并且相应的内容也做了修改和补充。
+> 此篇介绍原文来自 hsfxuebao 博客 [kafka源码系列](https://juejin.cn/post/7008882455868342285)。原文使用的Kafka版本是0.10.2。本文将代码内容更新到了3.9.0，增加了自己的解读，部份内容也做了修改和补充。
 
 ## 1. Kafka Producer 使用
 

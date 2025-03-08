@@ -1,13 +1,14 @@
 ---
-title: Kafka资料合集
+title: Kafka学习笔记
 tags: kafka
 ---
 
-# Kafka文章合集
+# Kafka学习笔记
 
 * [Kakfa概述](./01-intro.md)
 * [Kafka命令合集](./02-kafka-cli.md)
 * Kafka源码系列
-  * Producer生产者
+  * Producer
     * [KafkaProducer源码 - 初始化](./source-code/producer/producer-init.md)
-  * 消费者Consumer
+    * [KafkaProducer源码 - 初始化](./source-code/producer/producer-processing-flow.md)
+  * Consumer

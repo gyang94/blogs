@@ -38,6 +38,8 @@ features:
     icon:
       src: /kafka.svg
     details: Apache Kafka 是一个开源分布式事件流平台，被数千家公司用于高性能数据管道、流分析、数据集成和任务关键型应用程序。
+    link: notes/kafka/kafka-category
+    linkText: Kafka学习笔记
     
 ---
 
