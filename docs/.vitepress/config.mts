@@ -61,7 +61,7 @@ export default defineConfig({
                     text: 'Producer', collapsed: true, items: [
                       { text: 'KafkaProducer源码 - 初始化', link: '/notes/kafka/source-code/producer/producer-init' },
                       { text: 'KafkaProducer源码 - 核心流程', link: '/notes/kafka/source-code/producer/producer-processing-flow' },
-
+                      { text: 'KafkaProducer源码 - 元数据更新', link: '/notes/kafka/source-code/producer/producer-metadata' },
                     ]
                   },
                   {
