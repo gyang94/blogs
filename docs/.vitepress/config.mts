@@ -30,6 +30,7 @@ export default defineConfig({
           { text: 'Fluss', link: '/notes/fluss/fluss-category' },
           { text: 'Flink', link: '/notes/flink/flink-category' },
           { text: 'Kafka', link: '/notes/kafka/kafka-category' },
+          { text: 'Iceberg', link: '/notes/iceberg/iceberg-category' },
         ]
       },
       // { text: 'Examples', link: '/markdown-examples' }
@@ -82,7 +83,18 @@ export default defineConfig({
               { text: 'Flink源码 - 从Kafka Connector看Source接口重构', link: '/notes/flink/flink-connector-kafka' }
             ]
         }
-      ]
+      ],
+      '/notes/iceberg/': [
+        { 
+            text: 'Iceberg学习笔记', 
+            link: '/notes/iceberg/iceberg-category',
+            collapsed: true,
+            items: [
+              { text: 'Iceberg文件布局', link: '/notes/iceberg/01-files' }
+            ]
+        }
+      ],
+
     },
 
     socialLinks: [
