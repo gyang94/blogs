@@ -91,7 +91,8 @@ export default defineConfig({
             collapsed: true,
             items: [
               { text: 'Iceberg文件布局', link: '/notes/iceberg/01-files' },
-              { text: 'Iceberg核心特性', link: '/notes/iceberg/02-features' }
+              { text: 'Iceberg核心特性', link: '/notes/iceberg/02-features' },
+              { text: 'Flink与Iceberg集成', link: '/notes/iceberg/03-flink-integration' }
             ]
         }
       ],
