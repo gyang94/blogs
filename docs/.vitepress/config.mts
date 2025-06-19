@@ -31,6 +31,7 @@ export default defineConfig({
           { text: 'Flink', link: '/notes/flink/flink-category' },
           { text: 'Kafka', link: '/notes/kafka/kafka-category' },
           { text: 'Iceberg', link: '/notes/iceberg/iceberg-category' },
+          { text: 'Paimon', link: '/notes/paimon/paimon-category' },
         ]
       },
       // { text: 'Examples', link: '/markdown-examples' }
@@ -93,6 +94,16 @@ export default defineConfig({
               { text: 'Iceberg文件布局', link: '/notes/iceberg/01-files' },
               { text: 'Iceberg核心特性', link: '/notes/iceberg/02-features' },
               { text: 'Flink与Iceberg集成', link: '/notes/iceberg/03-flink-integration' }
+            ]
+        }
+      ],
+      '/notes/paimon/': [
+        { 
+            text: 'Paimon学习笔记', 
+            link: '/notes/paimon/paimon-category',
+            collapsed: true,
+            items: [
+              { text: 'Paimon介绍', link: '/notes/paimon/01-intro' },
             ]
         }
       ],
