@@ -47,6 +47,7 @@ export default defineConfig({
               { text: '01-搭建Fluss本地开发环境', link: '/notes/fluss/01-development-env-setup' },
               { text: '02-Fluss Catalog', link: '/notes/fluss/02-fluss-catalog' },
               { text: '03-Tiering Service Deep Dive', link: './03-tiering-service-deep-dive.md' },
+              { text: '04-Hands on Fluss Lakehouse', link: './04-hands-on-fluss-lakehouse.md' },
             ]
         }
       ],
