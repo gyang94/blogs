@@ -105,6 +105,7 @@ export default defineConfig({
             collapsed: true,
             items: [
               { text: 'Paimon介绍', link: '/notes/paimon/01-intro' },
+              { text: 'LSM Tree', link: '/notes/paimon/02-lsm' },
             ]
         }
       ],
