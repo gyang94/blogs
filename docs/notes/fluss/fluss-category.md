@@ -12,4 +12,5 @@ Fluss项目于Flink Forward Asia 2024大会上开源，当前的学习资料不�
 * [搭建Fluss本地开发环境](./01-development-env-setup.md)
 * [Fluss Catalog](./02-fluss-catalog.md)
 * [Tiering Service Deep Dive](./03-tiering-service-deep-dive.md)
+* [Tiering Service Deep Dive (ZH)](./03-tiering-service-deep-dive-zh.md)
 * [Hands-on Fluss Lakehouse](./04-hands-on-fluss-lakehouse.md)

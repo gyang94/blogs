@@ -12,17 +12,56 @@ Fluss persists historical data in a lakehouse storage layer while keeping real-t
 
 In this tutorial, we’ll show you how to build a local Fluss lakehouse environment, perform essential data operations, and get hands-on experience with the end-to-end Fluss lakehouse architecture.
 
-## Integrate the Lakehouse Locally
+## Integrate the Paimon Lakehouse with S3 Locally
 
-We’ll use **Fluss 0.7** and **Flink 1.20** to run the tiering service on a local cluster, with **Paimon** as the lake format. Follow these steps:
+We’ll use **Fluss 0.7** and **Flink 1.20** to run the tiering service on a local cluster, with **Paimon** as the lake format and **S3** as paimon storage. Follow these steps:
+
+### Minio Setup
+
+1. Install Minio object storage locally. 
+   
+Follow the official ![guide](https://min.io/docs/minio/macos/index.html).
+
+2. Start minio server 
+
+Run this command with a local path to store minio data.
+```
+minio server /tmp/minio-data
+```
+
+3. Verify in Minio WebUI.
+
+If minio server is successfully running, there will be several endpoints and an account shown:
+
+```
+API: http://192.168.2.236:9000  http://127.0.0.1:9000
+   RootUser: minioadmin
+   RootPass: minioadmin
+
+WebUI: http://192.168.2.236:61832 http://127.0.0.1:61832
+   RootUser: minioadmin
+   RootPass: minioadmin
+```
+Open the webUI link and login with the user account.
+
+4. Create a `fluss` bucket through webUI.
+
+![](./img/04/fluss-bucket.png)
+
 
 ### Fluss Cluster Setup
 
 1. Download Fluss
 
-Get the Fluss 0.7 binary release from the [official site](https://alibaba.github.io/fluss-docs/downloads/).
+Get the Fluss 0.7 binary release from the ![official site](https://alibaba.github.io/fluss-docs/downloads/).
 
-2. Configure the Data Lake
+2. Add dependency
+
+Download the `fluss-fs-s3-0.7.0.jar` from Fluss ![official site](https://alibaba.github.io/fluss-docs/downloads/) and put it into `<FLUSS_HOME>/lib`.
+
+Download the `paimon-s3-1.0.1.jar` from Paimon ![official site]() and put it into `<FLUSS_HOME>/plugins/paimon`.
+
+3. Configure the Data Lake
 
 Edit `<FLUSS_HOME>/conf/server.yaml` and add:
 
@@ -32,8 +71,14 @@ remote.data.dir: /tmp/fluss-remote-data
 
 datalake.format: paimon
 datalake.paimon.metastore: filesystem
-datalake.paimon.warehouse: /tmp/fluss-paimon-data
+datalake.paimon.warehouse: s3://fluss/data
+datalake.paimon.s3.endpoint: http://localhost:9000
+datalake.paimon.s3.access-key: minioadmin
+datalake.paimon.s3.secret-key: minioadmin
+datalake.paimon.s3.path.style.access: true
 ```
+
+Set Paimon as the datalake format and s3 as the warehouse.
 
 3. Start Fluss
 
@@ -55,16 +100,15 @@ Download `fluss-flink-1.20-0.7.0.jar` from the [Fluss site](https://alibaba.gith
 <FLINK_HOME>/lib
 ```
 
-3. Add Paimon Support
+3. Add Paimon Dependencies
 
-- Download `paimon-flink-1.20-1.01.jar` from the [Paimon project site](https://paimon.apache.org/docs/1.0/project/download/) into `<FLINK_HOME>/lib`.
+- Download `paimon-flink-1.20-1.0.1.jar` and `paimon-s3-1.0.1.jar` from the [Paimon project site](https://paimon.apache.org/docs/1.0/project/download/) into `<FLINK_HOME>/lib`.
 - Copy the Paimon plugin jars from Fluss into `<FLINK_HOME>/lib` .
 
 ```java
 <FLUSS_HOME>/plugins/paimon/fluss-lake-paimon-0.7.0.jar
 <FLUSS_HOME>/plugins/paimon/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
 ```
-
 
 4. Increase Task Slots
 
@@ -227,39 +271,50 @@ The __offset and __timestamp columns for these two records are not the default v
 
 6. Inspect the Paimon Files
 
-On your local filesystem, you can verify the Parquet files and manifest under `/tmp/fluss-paimon-data` .
+Open the Minio webUI, you will see there exists paimon files in the bucket.
+
+![](./img/04/fluss-bucket-data.png)
+
+In your local filesystem, you can verify the Parquet files and manifest under `/tmp/minio-data` .
 
 ```
-/tmp/fluss-paimon-data ❯ tree .                                   00:20:07
+/tmp/minio-data ❯ tree .
 .
-├── default.db
-└── fluss.db
-    └── t_user
-        ├── bucket-0
-        │         ├── changelog-bd4303c8-80f1-4b7b-9dc6-c6a3ce96aa47-0.parquet
-        │         ├── changelog-e0209369-16ba-462c-af0a-815f57d72553-0.parquet
-        │         ├── data-bd4303c8-80f1-4b7b-9dc6-c6a3ce96aa47-1.parquet
-        │         └── data-e0209369-16ba-462c-af0a-815f57d72553-1.parquet
-        ├── manifest
-        │         ├── manifest-bbb24f9d-a4b9-4ea6-82ef-97b16c7f23d8-0
-        │         ├── manifest-bbb24f9d-a4b9-4ea6-82ef-97b16c7f23d8-1
-        │         ├── manifest-e7bf8240-a442-40f3-8b82-8ff5619dc7e9-0
-        │         ├── manifest-e7bf8240-a442-40f3-8b82-8ff5619dc7e9-1
-        │         ├── manifest-list-8e23b5ce-0b39-407f-b8ba-7aaaee629154-0
-        │         ├── manifest-list-8e23b5ce-0b39-407f-b8ba-7aaaee629154-1
-        │         ├── manifest-list-8e23b5ce-0b39-407f-b8ba-7aaaee629154-2
-        │         ├── manifest-list-e10b824d-1a07-47a2-8f91-b12c170cfc43-0
-        │         ├── manifest-list-e10b824d-1a07-47a2-8f91-b12c170cfc43-1
-        │         └── manifest-list-e10b824d-1a07-47a2-8f91-b12c170cfc43-2
-        ├── schema
-        │         └── schema-0
-        └── snapshot
-            ├── LATEST
-            ├── snapshot-1
-            └── snapshot-2
+└── fluss
+    └── data
+        ├── default.db__XLDIR__
+        │   └── xl.meta
+        └── fluss.db
+            └── t_user
+                ├── bucket-0
+                │   ├── changelog-ad07a5a0-10c8-48a9-93c5-11d43e35c9d9-0.parquet
+                │   │   └── xl.meta
+                │   └── data-ad07a5a0-10c8-48a9-93c5-11d43e35c9d9-1.parquet
+                │       └── xl.meta
+                ├── manifest
+                │   ├── manifest-6bb801ab-9a80-4df1-927f-063b73764cf8-0
+                │   │   └── xl.meta
+                │   ├── manifest-6bb801ab-9a80-4df1-927f-063b73764cf8-1
+                │   │   └── xl.meta
+                │   ├── manifest-list-e8b9cde3-5b94-456e-a702-cedd498e1c5f-0
+                │   │   └── xl.meta
+                │   ├── manifest-list-e8b9cde3-5b94-456e-a702-cedd498e1c5f-1
+                │   │   └── xl.meta
+                │   └── manifest-list-e8b9cde3-5b94-456e-a702-cedd498e1c5f-2
+                │       └── xl.meta
+                ├── schema
+                │   └── schema-0
+                │       └── xl.meta
+                └── snapshot
+                    ├── LATEST
+                    │   └── xl.meta
+                    └── snapshot-1
+                        └── xl.meta
+
+20 directories, 11 files
 ```
 
-7. View Snapshots
+1. View Snapshots
 
 Users can also check the snapshots from the system table, by appending `$lake$snapshots` after thefluss table name.
 
