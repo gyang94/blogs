@@ -331,4 +331,5 @@ Flink SQL> select * from t_user$lake$snapshots;
 
 ## Summary
 
+
 In this guide, we gave a concise overview of the Fluss lakehouse architecture, walked through a step-by-step local setup of both Fluss and Flink clusters, and showcased practical data-processing examples using real-time and historical data. Those steps give you practical experience with Fluss’s lakehouse architecture in a local environment.
