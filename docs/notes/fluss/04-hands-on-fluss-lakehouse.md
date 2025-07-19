@@ -1,5 +1,5 @@
 ---
-title: Hands-on Fluss Lakehouse
+title: Hands-on Fluss Lakehouse with Paimon S3
 tags: fluss
 outline: deep
 ---
@@ -12,7 +12,7 @@ Fluss persists historical data in a lakehouse storage layer while keeping real-t
 
 In this tutorial, we’ll show you how to build a local Fluss lakehouse environment, perform essential data operations, and get hands-on experience with the end-to-end Fluss lakehouse architecture.
 
-## Integrate the Paimon Lakehouse with S3 Locally
+## Integrate Paimon S3 Lakehouse
 
 We’ll use **Fluss 0.7** and **Flink 1.20** to run the tiering service on a local cluster, with **Paimon** as the lake format and **S3** as paimon storage. Follow these steps:
 
