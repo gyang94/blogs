@@ -9,23 +9,26 @@ outline: deep
 ## 主键表
 Paimon主键（Primary Key）表：表中每一行数据都有一个唯一主键，用来表示唯一的一行数据。
 
-```
+```sql
 CREATE TABLE if not exists paimon.test.bucket_num (
- `id` Int,
+  `id` int,
   `name` String,
-  `age` Int,
+  `age` intnt,
   `dt` string,
-   PRIMARY KEY (id,dt) NOT ENFORCED
-) PARTITIONED BY (dt) with  (
+  PRIMARY KEY (`id`, `dt`) NOT ENFORCED
+) PARTITIONED BY (`dt`) WITH (
+  'bucket' = '2',
+  'merge-engine' = 'deduplicate',
+  'file.format'='avro'
 );
 ```
 
 ### 分桶方式
 Bucket 桶是Paimon表读写操作的最小单元。非分区、分区的数据都会写入到对应的桶中。
 
-创建Paimon主键表时，在WITH参数中指定'bucket' = '<num>'  
-1. '<num>'  为2、3正数的则是固定桶
-2. '<num>' 值为 -1，或者不写buckent=…… 则表示动态桶
+创建Paimon主键表时，在WITH参数中指定'bucket' = '{num}'  
+1. '{num}'  为2、3正数的则是固定桶
+2. '{num}' 值为 -1，或者不写`buckent={num}` 则表示动态桶
 
 ```
 CREATE TABLE if not exists paimon.test.bucket_num (
@@ -33,10 +36,10 @@ CREATE TABLE if not exists paimon.test.bucket_num (
   `name` String,
   `age` Int,
   `dt` string,
-   PRIMARY KEY (id,dt) NOT ENFORCED
+   PRIMARY KEY (id, dt) NOT ENFORCED
 ) PARTITIONED BY (dt) with  (
- 'bucket' = '2'， -- bucket=4  固定分桶、'bucket' = '-1' 动态分桶
- 'merge-engine' = 'deduplicate'， -- deduplicate 是默认值，可以不设置，相同的主键数据，保留最新的
+ 'bucket' = '2', -- bucket=4  固定分桶、'bucket' = '-1' 动态分桶
+ 'merge-engine' = 'deduplicate', -- deduplicate 是默认值，可以不设置，相同的主键数据，保留最新的
  'file.format'='avro' --格式 parquet、orc、avro
 );
 ```
@@ -62,7 +65,7 @@ CREATE TABLE if not exists paimon.test.bucket2 (
 
 注意：分桶数限制了实际工作的作业并发数，单个分桶内数据总量太大可能导致读写性能的降低。
 
-**假如有多个作业（insert into）如何支持写入一张表？**
+**假如有多个作业（insert into）如何支持写入一张表?**
 
 如果要支持多个insert into table select …… 写入到相同的一张表
 设置参数  'write-only'='true' （单独启动一个Dedicated Compaction Job）
