@@ -4,7 +4,7 @@ tags: fluss
 outline: deep
 ---
 
-# Hands-on Fluss Lakehouse
+# Hands-on Fluss Lakehouse with Paimon S3
 
 Fluss persists historical data in a lakehouse storage layer while keeping real-time data in the Fluss server. A built-in tiering service continuously syncs fresh events into the lakehouse—enabling multiple query engines to run analytics over both hot and cold data. Fluss’s union-read feature then allows Flink jobs to transparently query from both the Fluss cluster and the lakehouse for seamless real-time processing.
 
