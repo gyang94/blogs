@@ -65,7 +65,7 @@ lookup：与full-compaction相比较，lookup机制的时效性更好，但总�
 
 full-compaction：与lookup机制相比，full-compaction机制的时效性较差，小文件合并流程，不产生额外计算，因此总体来看耗费的资源更少。数据时效性（小时级）的情况下使用。由于小文件全量合并会消耗较多计算资源，因此频率不宜过高，建议每30分钟至1小时强制执行一次。
 
-'full-compaction.delta-commits' = '<num>'：Paimon在每<num>个Flink作业的检查点执行小文件全量合并。
+'full-compaction.delta-commits' = '{num}'：Paimon在每{num}个Flink作业的检查点执行小文件全量合并。
 
 ## 案例
 
