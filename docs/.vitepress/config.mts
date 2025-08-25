@@ -106,6 +106,10 @@ export default defineConfig({
               { text: 'Paimon介绍', link: '/notes/paimon/01-intro' },
               { text: 'LSM Tree', link: '/notes/paimon/02-lsm' },
               { text: '主键表和Append Only表', link: '/notes/paimon/03-paimon-table' },
+              { text: 'Changelog Producer', link: '/notes/paimon/04-changelog-producer'},
+              { text: 'Merge Engine', link: '/notes/paimon/05-merge-engine'},
+              { text: '文件布局', link: '/notes/paimon/06-file-layout'},
+              { text: '文件布局(源码)', link: '/notes/paimon/07-file-layout-source'},
             ]
         }
       ],
